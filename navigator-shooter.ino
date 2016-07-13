@@ -83,7 +83,7 @@ class Comms
 Comms com;
 void setup()
 {
-  pinMode(13,OUTPUT);
+  //pinMode(13,OUTPUT);
   com = Comms();
   //Shooter::init();
   //delay(500);
@@ -93,7 +93,7 @@ void loop()
 {
   com.run();
   //Shooter::run();
-  delay(1000);
+  delay(100);
 }
 
 
