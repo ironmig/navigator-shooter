@@ -1,5 +1,5 @@
 #include <Servo.h>
-//#define USBCON
+#define USBCON
 #include <ros.h>
 #include <std_msgs/Bool.h>
 #include <std_msgs/String.h>
@@ -61,7 +61,7 @@ class Comms
       str_msg(),
       chatter("chatter", &str_msg)
     {
-      nh.getHardware()->setBaud(9600);
+      //nh.getHardware()->setBaud(9600);
       nh.initNode();
       //delay(3000);
       nh.advertise(chatter);
@@ -93,7 +93,7 @@ void loop()
 {
   com.run();
   //Shooter::run();
-  delay(100);
+  delay(1000);
 }
 
 
