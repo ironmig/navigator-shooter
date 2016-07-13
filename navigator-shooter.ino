@@ -1,5 +1,8 @@
 #include <Servo.h>
 
+#include <ros.h>
+#include <std_msgs/Bool.h>
+
 class Shooter
 {
   private:
@@ -43,30 +46,44 @@ Servo Shooter::controller = Servo();
 class Comms
 {
   private:
+    ros::NodeHandle nh;
+    ros::Subscriber<std_msgs::Bool> subscriber;
+    //std_msgs::String str_msg;
+    //ros::Publisher chatter;
     static const char ON_CHAR = 'i';
     static const char OFF_CHAR = 'o';
   public:
-    static void init() {Serial.begin(9600);}
-    static void run()
+    Comms() : 
+      nh(),
+      subscriber("shooter",&callback)
+      //str_msg(),
+      //chatter("chatter", &str_msg)
     {
-      if (Serial.available() > 0)
-      {
-        char c = Serial.read();
-        if (c == ON_CHAR) Shooter::on();
-        else if (c == OFF_CHAR) Shooter::off();
-      }
+      nh.initNode();
+      //nh.advertise(chatter);
+      nh.subscribe(subscriber);
+    }
+    static void callback(const std_msgs::Bool& msg)
+    {
+      if (msg.data) Shooter::on();
+      else if (!msg.data) Shooter::off();
+    }
+    void run()
+    {
+      nh.spinOnce();
     }
 };
 
+Comms com;
 void setup()
 {
-  Comms::init();
+  com = Comms();
   Shooter::init();
 }
 
 void loop()
 {
-  Comms::run();
+  com.run();
   Shooter::run();
   delay(50);
 }
