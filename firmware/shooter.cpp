@@ -25,9 +25,6 @@ class Victor
       pin = p;
       controller = Servo();
       goal = 1500;
-    }
-    void init()
-    {
       controller.attach(pin);
       _set(goal);
     }
@@ -77,13 +74,7 @@ class Feeder
     Victor motor;
     Feeder (int motorPin)
     {
-      motor(motorPin);
-      set(1500);
-      goal = 1500;
-    }
-    void init()
-    {
-      motor.init();
+      motor = Victor(motorPin);
     }
     void run()
     {
@@ -91,12 +82,13 @@ class Feeder
     }
 };
 
+static Feeder feeder;
+static Victor shooter;
+
 class Comms
 {
   private:
     //ROS
-    Feeder feeder;
-    Victor shooter;
     ros::NodeHandle nh;
     std_msgs::String str_msg;
     //ros::Publisher chatter;
@@ -106,9 +98,9 @@ class Comms
     {
       String s = str_msg.data;
       if (s == "flyon")
-        Shooter.on();
+        shooter.on();
       else if (s == "flyoff")
-        Shooter.off();
+        shooter.off();
       else if (s == "feedon")
         feeder.motor.on();
       else if (s == "feedoff")
@@ -129,14 +121,8 @@ class Comms
       //chatter("chatter", &str_msg)
     {
       pinMode(13,OUTPUT);
-    }
-    void init()
-    {
-      shooter.init();
-      feeder.init();
       nh.initNode();
       nh.subscribe(sub);
-      //nh.advertise(chatter);   
     }
     void run()
     {
@@ -146,10 +132,12 @@ class Comms
     }
 };
 
-Comms com;
+static Comms com;
 void setup()
 {
-  com.init();
+  shooter = Victor(5);
+  feeder = Feeder(6);
+  com = Comms();
 }
 
 void loop()
