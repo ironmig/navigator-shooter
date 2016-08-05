@@ -17,6 +17,8 @@ class Victor
     int goal;
     int cur;
     int pin;
+    unsigned long stopAtTime;
+    bool autoStop;
     //Internal set command to write to controller PWM
     void _set(int s)
     {
@@ -29,6 +31,7 @@ class Victor
       pin = p;
       controller = Servo();
       goal = 1500;
+      autoStop = false;
     }
     void init()
     {
@@ -37,6 +40,7 @@ class Victor
     }
     void set(int speed)
     {
+		autoStop = false;
       goal = map(speed,-100,100, 1000,2000);
     }
     int get()
@@ -58,6 +62,14 @@ class Victor
     //Should be called in each loop so PWM slowly ramps up, doesn't work otherwise
     void run()
     {
+	  if (autoStop)
+	  {
+		  if (millis() >= stopAtTime)
+		  {
+			  autoStop = false;
+			  off();
+		  }
+		}
       if (cur != goal)
       {
         if (goal == 1500) _set(1500);
@@ -71,6 +83,11 @@ class Victor
         }
       }
     }
+    void stopAt(unsigned long time)
+    {
+		autoStop = true;
+		stopAtTime = time;
+	}
 };
 Victor shooter(SHOOTER_PIN);
 
@@ -78,13 +95,27 @@ class Feeder
 {
   private:
 	static const unsigned long MAX_SHOOT_TIME = 5000;
+	static const unsigned long SHOOT_AFTER_FEED_TIME = 3000;
 	int ir_input;
 	bool shooting;
 	bool ir_last;
 	bool ir_cur;
 	bool ir_last_last;
 	bool has_been_one;
-	unsigned long started_shooting;
+	void startShoot()
+	{
+		shooting = true;
+		has_been_one = false;
+		ir_last = true;
+		shooter.on();
+	}
+	void stopShoot()
+	{
+		shooting = false;
+		motor.off();
+		unsigned long stopShootAt = millis() + SHOOT_AFTER_FEED_TIME;
+		shooter.stopAtTime(stopShootAt);
+	}
   public:
     Victor motor;
     Feeder (int motorPin, int irPin) :
@@ -108,8 +139,7 @@ class Feeder
 		unsigned long elapsed = millis() - started_shooting;
 		if (elapsed > MAX_SHOOT_TIME)
 		{
-			motor.off();
-			shooting = false;
+			stopShoot();
 			return;
 		}
 		ir_cur = getIR();
@@ -130,8 +160,7 @@ class Feeder
 			}
 			else if (!ir_cur && ir_last && has_been_one)
 			{
-				motor.off();
-				shooting = false;
+				stopShoot();
 			}
 		}
 				
@@ -142,15 +171,13 @@ class Feeder
     }
     void autoFeedOne()
     {
-		shooting = true;
-		has_been_one = false;
-		ir_last = true;
-		started_shooting = millis();
+		startShoot();
 		//motor.on();
 	}
 	void cancelAutoFeed()
 	{
 		shooting = false;
+		shooter.off();
 		motor.off();
 	}
     bool getIR()
